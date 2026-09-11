@@ -17,7 +17,7 @@ const tutorialCueLabel = tutorialCue?.querySelector(".tutorial-cue-label");
 const tutorialCueSublabel = tutorialCue?.querySelector(".tutorial-cue-sublabel");
 const tutorialStorageKey = "pixidimworld:interaction-tutorial:v2";
 
-const NAV_ZOOM_LEVELS = [1.0, 1.012, 1.023, 1.034, 1.045, 1.055];
+const NAV_ZOOM_LEVELS = [1.0, 1.022, 1.036, 1.05, 1.064, 1.078];
 
 let bgMusic = null;
 let bgMusicStarted = false;
@@ -269,11 +269,30 @@ function saveTutorialCompletion() {
   }
 }
 
+function positionMobileGlue() {
+  const glue = document.querySelector(".edge-decor-glue");
+  const reverse = document.querySelector(".paper-reverse");
+  if (!glue || !reverse || window.innerWidth > 800) {
+    root.style.removeProperty("--mobile-glue-top");
+    root.style.removeProperty("--mobile-glue-size");
+    return;
+  }
+
+  const reverseBounds = reverse.getBoundingClientRect();
+  const safeInset = 3;
+  const gap = window.innerHeight <= 650 ? 2 : 8;
+  const availableHeight = Math.max(22, window.innerHeight - reverseBounds.bottom - gap - safeInset);
+  const preferredSize = Math.min(window.innerWidth * 0.125, 58);
+  const size = Math.min(preferredSize, availableHeight);
+  root.style.setProperty("--mobile-glue-top", `${reverseBounds.bottom + gap}px`);
+  root.style.setProperty("--mobile-glue-size", `${size}px`);
+}
 function updateNavFocusZoom(index) {
   if (prefersReducedMotion.matches || (tutorialStep !== "complete" && tutorialStep !== "idle")) return;
   const clampedIndex = clamp(index, 0, NAV_ZOOM_LEVELS.length - 1);
   const zoom = NAV_ZOOM_LEVELS[clampedIndex];
   root.style.setProperty("--nav-focus-zoom", String(zoom));
+  requestAnimationFrame(positionMobileGlue);
 }
 
 function syncTutorialFocus() {
@@ -548,6 +567,31 @@ function updateLoaderProgress(value) {
   loaderProgressTrack?.setAttribute("aria-valuenow", String(value));
 }
 
+function waitForAudioReady(audio) {
+  return new Promise((resolve) => {
+    if (!audio) {
+      resolve();
+      return;
+    }
+
+    const finish = () => {
+      audio.removeEventListener("canplaythrough", finish);
+      audio.removeEventListener("loadeddata", finish);
+      audio.removeEventListener("error", finish);
+      resolve();
+    };
+
+    if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      finish();
+      return;
+    }
+
+    audio.addEventListener("canplaythrough", finish, { once: true });
+    audio.addEventListener("loadeddata", finish, { once: true });
+    audio.addEventListener("error", finish, { once: true });
+    audio.load();
+  });
+}
 async function loadSiteImages() {
   if (!siteLoader) {
     root.classList.remove("is-loading");
@@ -558,7 +602,17 @@ async function loadSiteImages() {
   const backgroundImage = new Image();
   backgroundImage.src = "/background.png";
 
-  const images = [...document.images, backgroundImage];
+  const criticalAssetUrls = [
+    "/board.png", "/clip.png", "/assest/2026.png", "/assest/bulb.png",
+    "/assest/file.png", "/assest/radio2.png", "/assest/glue.png", "/assest/laptop.png",
+    "/assest/notes.png", "/design1.png", "/design2.png", "/design3.png", "/design4.png",
+  ];
+  const criticalImages = criticalAssetUrls.map((src) => {
+    const image = new Image();
+    image.src = src;
+    return image;
+  });
+  const images = [...new Set([...document.images, backgroundImage, ...criticalImages])];
   let loadedImages = 0;
   let displayedProgress = 1;
   let availableProgress = 1;
@@ -595,6 +649,7 @@ async function loadSiteImages() {
   await Promise.all([
     Promise.all(imageTasks),
     document.fonts?.ready || Promise.resolve(),
+    Promise.all([waitForAudioReady(initPaperSound()), waitForAudioReady(initBgMusic())]),
   ]);
 
   availableProgress = 100;
@@ -999,7 +1054,7 @@ function paperReturn(paper, direction = 1) {
 }
 
 async function nextPaper(trigger) {
-  if (paperTransitioning) return;
+  if (paperTransitioning || previewSourceImage) return;
 
   const currentPaper = trigger.closest(".clipboard-paper");
   const nextPageName = trigger.dataset.nextPaper;
@@ -1043,7 +1098,7 @@ async function nextPaper(trigger) {
 }
 
 async function reversePaper() {
-  if (paperTransitioning || currentPaperIndex === 0) return;
+  if (paperTransitioning || previewSourceImage || currentPaperIndex === 0) return;
 
   const currentPaper = document.querySelector(".clipboard-paper.is-active");
   const previousIndex = currentPaperIndex - 1;
@@ -1076,6 +1131,106 @@ async function reversePaper() {
   }
 }
 
+const designPreviewModal = document.querySelector("[data-design-preview]");
+const designPreviewImage = document.querySelector("[data-design-preview-image]");
+let previewSourceImage = null;
+let previewAnimation = null;
+
+function getPreviewBounds(image) {
+  const aspectRatio = image.naturalWidth && image.naturalHeight
+    ? image.naturalWidth / image.naturalHeight
+    : image.width / image.height || 1;
+  const maxWidth = window.innerWidth * (window.innerWidth <= 800 ? 0.94 : 0.88);
+  const maxHeight = window.innerHeight * (window.innerWidth <= 800 ? 0.84 : 0.86);
+  let width = maxWidth;
+  let height = width / aspectRatio;
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = height * aspectRatio;
+  }
+  return {
+    width,
+    height,
+    left: (window.innerWidth - width) / 2,
+    top: (window.innerHeight - height) / 2,
+  };
+}
+
+function setPreviewImageBounds(bounds) {
+  if (!designPreviewImage) return;
+  designPreviewImage.style.left = `${bounds.left}px`;
+  designPreviewImage.style.top = `${bounds.top}px`;
+  designPreviewImage.style.width = `${bounds.width}px`;
+  designPreviewImage.style.height = `${bounds.height}px`;
+}
+
+function openDesignPreview(sourceImage) {
+  if (!designPreviewModal || !designPreviewImage || !sourceImage || previewSourceImage) return;
+  previewSourceImage = sourceImage;
+  const sourceBounds = sourceImage.getBoundingClientRect();
+  const targetBounds = getPreviewBounds(sourceImage);
+  designPreviewImage.src = sourceImage.currentSrc || sourceImage.src;
+  designPreviewImage.alt = sourceImage.alt;
+  setPreviewImageBounds(sourceBounds);
+  designPreviewModal.hidden = false;
+  designPreviewModal.setAttribute("aria-hidden", "false");
+  root.classList.add("is-design-preview-open");
+  requestAnimationFrame(() => {
+    previewAnimation?.cancel();
+    previewAnimation = designPreviewImage.animate([
+      { left: `${sourceBounds.left}px`, top: `${sourceBounds.top}px`, width: `${sourceBounds.width}px`, height: `${sourceBounds.height}px`, opacity: 0.82 },
+      { left: `${targetBounds.left}px`, top: `${targetBounds.top}px`, width: `${targetBounds.width}px`, height: `${targetBounds.height}px`, opacity: 1 },
+    ], {
+      duration: prefersReducedMotion.matches ? 1 : 360,
+      easing: "cubic-bezier(0.2, 0.78, 0.24, 1)",
+      fill: "forwards",
+    });
+    previewAnimation.finished.then(() => setPreviewImageBounds(targetBounds));
+  });
+}
+
+function closeDesignPreview() {
+  if (!designPreviewModal || !designPreviewImage || !previewSourceImage) return;
+  const sourceImage = previewSourceImage;
+  const sourceBounds = sourceImage.getBoundingClientRect();
+  const currentBounds = designPreviewImage.getBoundingClientRect();
+  previewAnimation?.cancel();
+  previewAnimation = designPreviewImage.animate([
+    { left: `${currentBounds.left}px`, top: `${currentBounds.top}px`, width: `${currentBounds.width}px`, height: `${currentBounds.height}px`, opacity: 1 },
+    { left: `${sourceBounds.left}px`, top: `${sourceBounds.top}px`, width: `${sourceBounds.width}px`, height: `${sourceBounds.height}px`, opacity: 0.82 },
+  ], {
+    duration: prefersReducedMotion.matches ? 1 : 280,
+    easing: "cubic-bezier(0.36, 0.08, 0.72, 0.32)",
+    fill: "forwards",
+  });
+  previewAnimation.finished.finally(() => {
+    designPreviewModal.hidden = true;
+    designPreviewModal.setAttribute("aria-hidden", "true");
+    root.classList.remove("is-design-preview-open");
+    designPreviewImage.removeAttribute("style");
+    designPreviewImage.removeAttribute("src");
+    previewSourceImage = null;
+    previewAnimation = null;
+    sourceImage.focus?.({ preventScroll: true });
+  });
+}
+
+document.querySelectorAll(".design-item").forEach((item) => {
+  item.addEventListener("click", () => openDesignPreview(item.querySelector("img")));
+  item.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openDesignPreview(item.querySelector("img"));
+  });
+});
+
+designPreviewModal?.addEventListener("click", (event) => {
+  if (event.target === designPreviewModal) closeDesignPreview();
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && previewSourceImage) closeDesignPreview();
+});
 document.addEventListener("click", (event) => {
   if (tutorialStep === "step_1" || tutorialStep === "step_2") {
     advanceTutorial(event);
@@ -1110,6 +1265,7 @@ document.addEventListener("click", () => {
 });
 
 window.addEventListener("resize", () => {
+  positionMobileGlue();
   if (tutorialStep !== "step_1" && tutorialStep !== "step_2") return;
   focusTutorialTarget(tutorialTarget, tutorialStep);
 }, { passive: true });
@@ -1129,4 +1285,5 @@ if (location.hash === "#projects") {
   hobbiesScene?.setAttribute("aria-hidden", "false");
 }
 root.classList.add("is-ready");
+requestAnimationFrame(positionMobileGlue);
 loadSiteImages();

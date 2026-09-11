@@ -14,12 +14,7 @@
 <body>
   <div id="site-loader" class="site-loader" role="status" aria-label="Loading portfolio">
     <div class="loader-grid" aria-hidden="true"></div>
-
     <img class="loader-prop loader-bulb" src="/assest/bulb.png" alt="" />
-
-
-
-
 
     <div class="loader-brand" aria-hidden="true">
       <div class="loader-title-paper">
@@ -39,10 +34,7 @@
     </div>
 
     <div class="loader-progress-paper">
-      <p class="loader-message">
-        <span class="loader-message-desktop">Loading creative world...</span>
-        <span class="loader-message-mobile">LOADING...</span>
-      </p>
+      <p class="loader-message">LOADING...</p>
       <div class="loader-progress-row">
         <div class="loader-progress-track" role="progressbar" aria-label="Loading site images" aria-valuemin="1"
           aria-valuemax="100" aria-valuenow="1">
@@ -51,10 +43,7 @@
         <span class="loader-percent" aria-hidden="true">1%</span>
       </div>
     </div>
-
-    <p class="loader-footer" aria-hidden="true">GOOD IDEAS AHEAD</p>
   </div>
-
   <header class="pixidim-brand" aria-label="PixiDimWorld">
     <span class="pixidim-brand-tape pixidim-brand-tape-left" aria-hidden="true"></span>
     <span class="pixidim-brand-tape pixidim-brand-tape-right" aria-hidden="true"></span>
@@ -180,10 +169,10 @@
                     </h2>
 
                     <div class="designs-showcase designs-showcase-two" aria-label="Design showcase part 2">
-                      <div class="design-item design-item-upper-left">
+                      <div class="design-item design-item-upper-left" role="button" tabindex="0" aria-label="Preview design 3">
                         <img src="/design3.png" alt="Design showcase preview 3" />
                       </div>
-                      <div class="design-item design-item-lower-right">
+                      <div class="design-item design-item-lower-right" role="button" tabindex="0" aria-label="Preview design 4">
                         <img src="/design4.png" alt="Design showcase preview 4" />
                       </div>
                     </div>
@@ -203,10 +192,10 @@
                     </h2>
 
                     <div class="designs-showcase designs-showcase-one" aria-label="Design showcase part 1">
-                      <div class="design-item design-item-upper-right">
+                      <div class="design-item design-item-upper-right" role="button" tabindex="0" aria-label="Preview design 1">
                         <img src="/design1.png" alt="Design showcase preview 1" />
                       </div>
-                      <div class="design-item design-item-lower-left">
+                      <div class="design-item design-item-lower-left" role="button" tabindex="0" aria-label="Preview design 2">
                         <img src="/design2.png" alt="Design showcase preview 2" />
                       </div>
                     </div>
@@ -478,6 +467,9 @@
     <span class="tutorial-arrow" aria-hidden="true">&#8595;</span>
   </div>
 
+  <div class="design-preview-modal" data-design-preview hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Design preview">
+    <img class="design-preview-image" data-design-preview-image alt="" />
+  </div>
   <script type="module" src="/src/main.js"></script>
 </body>
 
