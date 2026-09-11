@@ -286,7 +286,7 @@ function positionMobileGlue() {
   const gap = window.innerHeight <= 650 ? 2 : 8;
   const targetViewportTop = reverseBounds.bottom + gap;
   const availableViewportHeight = Math.max(22, window.innerHeight - targetViewportTop - safeInset);
-  const preferredViewportSize = Math.min(window.innerWidth * 0.16, 30);
+  const preferredViewportSize = Math.min(window.innerWidth * 0.16, 70);
   const size = Math.min(preferredViewportSize, availableViewportHeight) / scaleY;
   const top = (targetViewportTop - worldBounds.top) / scaleY;
   root.style.setProperty("--mobile-glue-top", `${top}px`);

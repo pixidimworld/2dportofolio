@@ -6315,3 +6315,22 @@ html.is-design-preview-open .pixidim-brand {
     margin-bottom: 11px;
   }
 }
+/* Keep every non-hobbies scene as a fixed viewport landing page. */
+html:not(.show-hobbies),
+html:not(.show-hobbies) body {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html:not(.show-hobbies) .scroll-stage,
+html:not(.show-hobbies) .scrapbook-world,
+html:not(.show-hobbies) .scene {
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+}
