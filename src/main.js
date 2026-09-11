@@ -272,19 +272,24 @@ function saveTutorialCompletion() {
 function positionMobileGlue() {
   const glue = document.querySelector(".edge-decor-glue");
   const reverse = document.querySelector(".paper-reverse");
-  if (!glue || !reverse || window.innerWidth > 800) {
+  const world = glue?.closest(".scrapbook-world");
+  if (!glue || !reverse || !world || window.innerWidth > 800) {
     root.style.removeProperty("--mobile-glue-top");
     root.style.removeProperty("--mobile-glue-size");
     return;
   }
 
   const reverseBounds = reverse.getBoundingClientRect();
+  const worldBounds = world.getBoundingClientRect();
+  const scaleY = worldBounds.height / world.offsetHeight || 1;
   const safeInset = 3;
   const gap = window.innerHeight <= 650 ? 2 : 8;
-  const availableHeight = Math.max(22, window.innerHeight - reverseBounds.bottom - gap - safeInset);
-  const preferredSize = Math.min(window.innerWidth * 0.125, 58);
-  const size = Math.min(preferredSize, availableHeight);
-  root.style.setProperty("--mobile-glue-top", `${reverseBounds.bottom + gap}px`);
+  const targetViewportTop = reverseBounds.bottom + gap;
+  const availableViewportHeight = Math.max(22, window.innerHeight - targetViewportTop - safeInset);
+  const preferredViewportSize = Math.min(window.innerWidth * 0.16, 30);
+  const size = Math.min(preferredViewportSize, availableViewportHeight) / scaleY;
+  const top = (targetViewportTop - worldBounds.top) / scaleY;
+  root.style.setProperty("--mobile-glue-top", `${top}px`);
   root.style.setProperty("--mobile-glue-size", `${size}px`);
 }
 function updateNavFocusZoom(index) {
