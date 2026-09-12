@@ -93,8 +93,10 @@ function pauseBgMusicOnLeave() {
 function handleVisibilityChange() {
   if (document.hidden) {
     pauseBgMusicOnLeave();
+    stopParallax();
   } else if (bgMusicWasPlayingBeforeHidden) {
     setupMusicResumeListeners();
+    if (!prefersReducedMotion.matches) queueParallax();
   }
 }
 
@@ -199,8 +201,13 @@ function renderParallax() {
   frameId = stillMoving ? requestAnimationFrame(renderParallax) : 0;
 }
 
+function stopParallax() {
+  if (frameId) cancelAnimationFrame(frameId);
+  frameId = 0;
+}
+
 function queueParallax() {
-  if (!frameId) frameId = requestAnimationFrame(renderParallax);
+  if (!document.hidden && !frameId) frameId = requestAnimationFrame(renderParallax);
 }
 
 function handlePointerMove(event) {
@@ -608,16 +615,22 @@ async function loadSiteImages() {
   backgroundImage.src = "/background.png";
 
   const criticalAssetUrls = [
-    "/board.png", "/clip.png", "/assest/2026.png", "/assest/bulb.png",
-    "/assest/file.png", "/assest/radio2.png", "/assest/glue.png", "/assest/laptop.png",
-    "/assest/notes.png", "/design1.png", "/design2.png", "/design3.png", "/design4.png",
+    "/board.png", "/clip.png",
+    "/assest/optimized/2026.webp", "/assest/optimized/bulb.webp",
+    "/assest/optimized/file.webp", "/assest/optimized/paint.webp",
+    "/assest/optimized/paint-brush.webp", "/assest/optimized/star.webp",
+    "/assest/optimized/radio2.webp", "/assest/optimized/crayon2.webp",
+    "/assest/optimized/pencil2.webp", "/assest/optimized/smileyface.webp",
+    "/assest/optimized/glue.webp", "/assest/optimized/laptop.webp",
+    "/assest/optimized/notes.webp", "/assest/optimized/office-pin.webp",
+    "/assest/optimized/portfolio-eye.webp",
   ];
   const criticalImages = criticalAssetUrls.map((src) => {
     const image = new Image();
     image.src = src;
     return image;
   });
-  const images = [...new Set([...document.images, backgroundImage, ...criticalImages])];
+  const images = [backgroundImage, ...criticalImages];
   let loadedImages = 0;
   let displayedProgress = 1;
   let availableProgress = 1;
