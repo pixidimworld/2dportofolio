@@ -6334,3 +6334,14 @@ html:not(.show-hobbies) .scene {
   max-height: 100dvh;
   overflow: hidden;
 }
+
+/* Keep the large office-book entrance on its own composited layer on mobile/tablet. */
+@media (max-width: 1100px) {
+  html.is-entering .hero-scene .hero-center-art {
+    will-change: transform, opacity;
+  }
+
+  html.is-entering .hero-scene .ambient-light {
+    animation-play-state: paused;
+  }
+}
