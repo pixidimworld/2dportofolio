@@ -17,7 +17,7 @@ const tutorialCueLabel = tutorialCue?.querySelector(".tutorial-cue-label");
 const tutorialCueSublabel = tutorialCue?.querySelector(".tutorial-cue-sublabel");
 const tutorialStorageKey = "pixidimworld:interaction-tutorial:v2";
 
-const NAV_CAMERA_DEPTHS = [0, 18, 34, 50, 66, 82];
+const NAV_ZOOM_LEVELS = [1.0, 1.022, 1.036, 1.05, 1.064, 1.078];
 
 let bgMusic = null;
 let bgMusicStarted = false;
@@ -94,10 +94,6 @@ function handleVisibilityChange() {
   if (document.hidden) {
     pauseBgMusicOnLeave();
     stopParallax();
-    if (tutorialSyncTimer) {
-      window.clearTimeout(tutorialSyncTimer);
-      tutorialSyncTimer = 0;
-    }
   } else if (bgMusicWasPlayingBeforeHidden) {
     setupMusicResumeListeners();
     if (!prefersReducedMotion.matches) queueParallax();
@@ -180,7 +176,8 @@ let frameId = 0;
 let orientationOrigin = null;
 let tutorialStep = "idle";
 let tutorialTarget = null;
-let tutorialSyncTimer = 0;
+let tutorialSyncFrame = 0;
+let tutorialSyncUntil = 0;
 let tutorialCameraState = { x: 0, y: 0, scale: 1 };
 
 function clamp(value, min, max) {
@@ -302,14 +299,16 @@ function positionMobileGlue() {
   root.style.setProperty("--mobile-glue-top", `${top}px`);
   root.style.setProperty("--mobile-glue-size", `${size}px`);
 }
-function updateNavCameraDepth(index) {
+function updateNavFocusZoom(index) {
   if (prefersReducedMotion.matches || (tutorialStep !== "complete" && tutorialStep !== "idle")) return;
-  const clampedIndex = clamp(index, 0, NAV_CAMERA_DEPTHS.length - 1);
-  root.style.setProperty("--nav-camera-depth", `${NAV_CAMERA_DEPTHS[clampedIndex]}px`);
+  const clampedIndex = clamp(index, 0, NAV_ZOOM_LEVELS.length - 1);
+  const zoom = NAV_ZOOM_LEVELS[clampedIndex];
+  root.style.setProperty("--nav-focus-zoom", String(zoom));
   requestAnimationFrame(positionMobileGlue);
 }
 
 function syncTutorialFocus() {
+  tutorialSyncFrame = 0;
   if (!tutorialTarget || (tutorialStep !== "step_1" && tutorialStep !== "step_2")) return;
 
   const rect = tutorialTarget.getBoundingClientRect();
@@ -332,6 +331,10 @@ function syncTutorialFocus() {
     tutorialCue.style.setProperty("--tutorial-cue-width", `${cueWidth}px`);
     tutorialCue.classList.toggle("is-below", spaceAbove <= 120);
   }
+
+  if (performance.now() < tutorialSyncUntil) {
+    tutorialSyncFrame = requestAnimationFrame(syncTutorialFocus);
+  }
 }
 
 function focusTutorialTarget(target, step) {
@@ -339,11 +342,6 @@ function focusTutorialTarget(target, step) {
 
   tutorialTarget = target;
   tutorialStep = step;
-  if (tutorialSyncTimer) {
-    window.clearTimeout(tutorialSyncTimer);
-    tutorialSyncTimer = 0;
-  }
-
   const rect = target.getBoundingClientRect();
   const viewportCenterX = window.innerWidth / 2;
   const viewportCenterY = window.innerHeight / 2;
@@ -378,11 +376,10 @@ function focusTutorialTarget(target, step) {
   root.style.setProperty("--tutorial-camera-scale", String(scale));
   root.dataset.tutorialStep = step;
   root.classList.add("is-tutorial-active");
-
-  tutorialOverlay.hidden = true;
-  tutorialOverlay.setAttribute("aria-hidden", "true");
-  tutorialCue.hidden = true;
-  tutorialCue.setAttribute("aria-hidden", "true");
+  tutorialOverlay.hidden = false;
+  tutorialOverlay.setAttribute("aria-hidden", "false");
+  tutorialCue.hidden = false;
+  tutorialCue.setAttribute("aria-hidden", "false");
 
   if (tutorialCueLabel) {
     tutorialCueLabel.textContent = step === "step_1"
@@ -390,19 +387,9 @@ function focusTutorialTarget(target, step) {
       : "Reverse brings the previous page back";
   }
 
-  const settleDelay = prefersReducedMotion.matches ? 0 : 340;
-  tutorialSyncTimer = window.setTimeout(() => {
-    tutorialSyncTimer = 0;
-    if (!tutorialTarget || tutorialStep !== step) return;
-    requestAnimationFrame(() => {
-      if (!tutorialTarget || tutorialStep !== step) return;
-      syncTutorialFocus();
-      tutorialOverlay.hidden = false;
-      tutorialOverlay.setAttribute("aria-hidden", "false");
-      tutorialCue.hidden = false;
-      tutorialCue.setAttribute("aria-hidden", "false");
-    });
-  }, settleDelay);
+  tutorialSyncUntil = performance.now() + (prefersReducedMotion.matches ? 80 : 760);
+  cancelAnimationFrame(tutorialSyncFrame);
+  tutorialSyncFrame = requestAnimationFrame(syncTutorialFocus);
 }
 
 let tutorialAdvanceLock = 0;
@@ -424,14 +411,6 @@ function advanceTutorial(event) {
   startBgMusic();
 
   if (tutorialStep === "step_1") {
-    if (tutorialOverlay) {
-      tutorialOverlay.hidden = true;
-      tutorialOverlay.setAttribute("aria-hidden", "true");
-    }
-    if (tutorialCue) {
-      tutorialCue.hidden = true;
-      tutorialCue.setAttribute("aria-hidden", "true");
-    }
     showReverseTutorial();
   } else if (tutorialStep === "step_2") {
     finishInteractionTutorial();
@@ -465,10 +444,8 @@ function finishInteractionTutorial() {
 
   tutorialStep = "complete";
   tutorialTarget = null;
-  if (tutorialSyncTimer) {
-    window.clearTimeout(tutorialSyncTimer);
-    tutorialSyncTimer = 0;
-  }
+  cancelAnimationFrame(tutorialSyncFrame);
+  tutorialSyncFrame = 0;
   tutorialCameraState = { x: 0, y: 0, scale: 1 };
   root.style.setProperty("--tutorial-camera-x", "0px");
   root.style.setProperty("--tutorial-camera-y", "0px");
@@ -496,17 +473,12 @@ function finishInteractionTutorial() {
       "--tutorial-focus-width",
       "--tutorial-focus-height",
     ].forEach((property) => root.style.removeProperty(property));
-    if (tutorialCue) {
-      tutorialCue.style.removeProperty("--tutorial-cue-left");
-      tutorialCue.style.removeProperty("--tutorial-cue-top");
-      tutorialCue.style.removeProperty("--tutorial-cue-width");
-    }
-    updateNavCameraDepth(currentPaperIndex);
+    updateNavFocusZoom(currentPaperIndex);
   }, prefersReducedMotion.matches ? 20 : 520);
 }
 
 function finishEntrance() {
-  root.classList.remove("has-entrance", "is-entering", "is-entering-book", "is-entering-assets");
+  root.classList.remove("has-entrance", "is-entering");
   entranceAnimations.forEach((animation) => animation.cancel());
   entranceAnimations = [];
   window.setTimeout(startInteractionTutorial, prefersReducedMotion.matches ? 20 : 140);
@@ -575,32 +547,28 @@ function playEntrance() {
   Promise.allSettled(entranceAnimations.map((animation) => animation.finished)).then(finishEntrance);
 }
 
-function decodeImage(image) {
+function waitForImage(image) {
   return new Promise((resolve) => {
     let settled = false;
 
     const finish = () => {
       if (settled) return;
       settled = true;
-      image.removeEventListener("load", onLoaded);
+      image.removeEventListener("load", finish);
       image.removeEventListener("error", finish);
       resolve();
     };
 
-    const onLoaded = () => {
+    if (image.complete) {
       if (typeof image.decode === "function") {
         image.decode().catch(() => {}).finally(finish);
       } else {
         finish();
       }
-    };
-
-    if (image.complete && image.naturalWidth > 0) {
-      onLoaded();
       return;
     }
 
-    image.addEventListener("load", onLoaded, { once: true });
+    image.addEventListener("load", finish, { once: true });
     image.addEventListener("error", finish, { once: true });
   });
 }
@@ -657,23 +625,13 @@ async function loadSiteImages() {
     "/assest/optimized/notes.webp", "/assest/optimized/office-pin.webp",
     "/assest/optimized/portfolio-eye.webp",
   ];
-
-  // In-DOM images for the first visible scene that must be decoded before entry
-  const domCriticalImages = [
-    document.querySelector(".clipboard-board"),
-    document.querySelector(".clipboard-clip"),
-    document.querySelector(".loader-bulb"),
-    ...document.querySelectorAll(".clipboard-edge-decor img"),
-  ].filter(Boolean);
-
-  const preloadImages = [backgroundImage, ...criticalAssetUrls.map((src) => {
-    const img = new Image();
-    img.src = src;
-    return img;
-  })];
-
-  const allCriticalImages = [...domCriticalImages, ...preloadImages];
-  let loadedCount = 0;
+  const criticalImages = criticalAssetUrls.map((src) => {
+    const image = new Image();
+    image.src = src;
+    return image;
+  });
+  const images = [backgroundImage, ...criticalImages];
+  let loadedImages = 0;
   let displayedProgress = 1;
   let availableProgress = 1;
   let finishCounter;
@@ -684,33 +642,32 @@ async function loadSiteImages() {
     finishCounter = resolve;
   });
 
-  const progressTicker = window.setInterval(() => {
-    if (displayedProgress < availableProgress) {
-      const step = Math.max(1, Math.ceil((availableProgress - displayedProgress) * 0.2));
-      displayedProgress = Math.min(availableProgress, displayedProgress + step);
-      updateLoaderProgress(displayedProgress);
-    }
-    if (displayedProgress >= 100) {
-      window.clearInterval(progressTicker);
+  const counter = window.setInterval(() => {
+    if (displayedProgress >= availableProgress) return;
+
+    displayedProgress += 1;
+    updateLoaderProgress(displayedProgress);
+
+    if (displayedProgress === 100) {
+      window.clearInterval(counter);
       finishCounter();
     }
-  }, 20);
+  }, 25);
 
-  const imageTasks = allCriticalImages.map((img) =>
-    decodeImage(img).then(() => {
-      loadedCount += 1;
+  const imageTasks = images.map((image) =>
+    waitForImage(image).then(() => {
+      loadedImages += 1;
       availableProgress = Math.max(
         availableProgress,
-        Math.min(99, Math.floor((loadedCount / allCriticalImages.length) * 99)),
+        Math.min(99, Math.floor((loadedImages / images.length) * 99)),
       );
     }),
   );
 
-  // Preload only critical scene assets: first-scene images, system fonts, and paper sound
   await Promise.all([
     Promise.all(imageTasks),
     document.fonts?.ready || Promise.resolve(),
-    waitForAudioReady(initPaperSound()),
+    Promise.all([waitForAudioReady(initPaperSound()), waitForAudioReady(initBgMusic())]),
   ]);
 
   availableProgress = 100;
@@ -1131,10 +1088,12 @@ async function nextPaper(trigger) {
   ) return;
 
   const fallDirection = getPaperDirection(currentPaper);
+  const clipboard = currentPaper.closest(".clipboard");
 
   paperTransitioning = true;
   updatePaperNavigation();
-  updateNavCameraDepth(nextIndex);
+  updateNavFocusZoom(nextIndex);
+  clipboard?.classList.add("is-paper-animating");
 
   try {
     playPaperFallSound();
@@ -1149,9 +1108,10 @@ async function nextPaper(trigger) {
     currentPaperIndex = nextIndex;
     nextSheet.focus({ preventScroll: true });
   } finally {
+    clipboard?.classList.remove("is-paper-animating");
     paperTransitioning = false;
     updatePaperNavigation();
-    updateNavCameraDepth(currentPaperIndex);
+    updateNavFocusZoom(currentPaperIndex);
   }
 }
 
@@ -1163,10 +1123,12 @@ async function reversePaper() {
   const previousPaper = document.querySelector(`[data-page="${paperOrder[previousIndex]}"]`);
   if (!currentPaper || !previousPaper?.classList.contains("is-passed")) return;
 
+  const clipboard = currentPaper.closest(".clipboard");
   const returnDirection = getPaperDirection(previousPaper);
   paperTransitioning = true;
   updatePaperNavigation();
-  updateNavCameraDepth(previousIndex);
+  updateNavFocusZoom(previousIndex);
+  clipboard?.classList.add("is-paper-animating");
   previousPaper.classList.remove("is-passed");
 
   try {
@@ -1180,9 +1142,10 @@ async function reversePaper() {
     currentPaperIndex = previousIndex;
     previousPaper.focus({ preventScroll: true });
   } finally {
+    clipboard?.classList.remove("is-paper-animating");
     paperTransitioning = false;
     updatePaperNavigation();
-    updateNavCameraDepth(currentPaperIndex);
+    updateNavFocusZoom(currentPaperIndex);
   }
 }
 
@@ -1313,18 +1276,16 @@ reversePaperTrigger?.addEventListener("click", () => {
   reversePaper();
 });
 
-function startAudioOnUserGesture() {
+document.addEventListener("click", () => {
   if (!bgMusicStarted) {
     startBgMusic();
   }
-}
-window.addEventListener("pointerdown", startAudioOnUserGesture, { once: true, passive: true });
-window.addEventListener("keydown", startAudioOnUserGesture, { once: true, passive: true });
+});
 
 window.addEventListener("resize", () => {
   positionMobileGlue();
   if (tutorialStep !== "step_1" && tutorialStep !== "step_2") return;
-  syncTutorialFocus();
+  focusTutorialTarget(tutorialTarget, tutorialStep);
 }, { passive: true });
 updatePaperNavigation();
 
