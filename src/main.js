@@ -15,7 +15,6 @@ const tutorialOverlay = document.querySelector("[data-tutorial-overlay]");
 const tutorialCue = document.querySelector("[data-tutorial-cue]");
 const tutorialCueLabel = tutorialCue?.querySelector(".tutorial-cue-label");
 const tutorialCueSublabel = tutorialCue?.querySelector(".tutorial-cue-sublabel");
-const tutorialStorageKey = "pixidimworld:interaction-tutorial:v2";
 
 const NAV_ZOOM_LEVELS = [1.0, 1.022, 1.036, 1.05, 1.064, 1.078];
 
@@ -256,26 +255,6 @@ function resetParallax() {
   queueParallax();
 }
 
-function hasCompletedTutorial() {
-  try {
-    return (
-      window.sessionStorage.getItem(tutorialStorageKey) === "complete" ||
-      window.localStorage.getItem(tutorialStorageKey) === "complete"
-    );
-  } catch {
-    return false;
-  }
-}
-
-function saveTutorialCompletion() {
-  try {
-    window.sessionStorage.setItem(tutorialStorageKey, "complete");
-    window.localStorage.setItem(tutorialStorageKey, "complete");
-  } catch {
-    // Storage fallback
-  }
-}
-
 function positionMobileGlue() {
   const glue = document.querySelector(".edge-decor-glue");
   const reverse = document.querySelector(".paper-reverse");
@@ -420,7 +399,6 @@ function advanceTutorial(event) {
 function startInteractionTutorial() {
   if (
     tutorialStep !== "idle" ||
-    hasCompletedTutorial() ||
     location.hash ||
     currentPaperIndex !== 0
   ) return;
@@ -451,7 +429,6 @@ function finishInteractionTutorial() {
   root.style.setProperty("--tutorial-camera-y", "0px");
   root.style.setProperty("--tutorial-camera-scale", "1");
   root.classList.add("is-tutorial-leaving");
-  saveTutorialCompletion();
 
   window.setTimeout(() => {
     root.classList.remove("is-tutorial-active", "is-tutorial-leaving");
