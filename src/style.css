@@ -3970,7 +3970,7 @@ body,
   z-index: 2;
   pointer-events: none;
   translate: var(--parallax-x, 0px) var(--parallax-y, 0px);
-  will-change: auto;
+  will-change: translate;
 }
 
 .clipboard-paper {
@@ -4049,7 +4049,7 @@ body,
   transform: translateX(-50%) rotate(0.4deg);
   pointer-events: none;
   translate: var(--parallax-x, 0px) var(--parallax-y, 0px);
-  will-change: auto;
+  will-change: translate;
 }
 
 .clipboard-clip {
@@ -4067,6 +4067,7 @@ body,
   pointer-events: none;
   translate: var(--parallax-x, 0px) var(--parallax-y, 0px);
   user-select: none;
+  will-change: translate;
 }
 
 @media (max-width: 800px) {
@@ -5785,18 +5786,7 @@ body,
   }
 }
 
-/* Soft upper-left studio ray: behind the book and edge assets. */
-.hero-scene .ambient-light {
-  z-index: 2;
-  background: radial-gradient(
-    ellipse 48% 38% at -4% -5%,
-    rgba(255, 253, 232, 0.40) 0%,
-    rgba(255, 232, 174, 0.22) 33%,
-    rgba(250, 207, 133, 0.09) 53%,
-    transparent 74%
-  );
-}
-
+/* Detailed directional light beams */
 .hero-scene .ambient-light::before {
   inset: -2%;
   width: auto;
@@ -5804,19 +5794,19 @@ body,
   height: auto;
   background: conic-gradient(
     from 0deg at 0 0,
-    transparent 0deg 91deg,
-    rgba(255, 255, 245, 0.10) 97deg,
-    rgba(255, 250, 222, 0.27) 105deg,
-    rgba(255, 244, 202, 0.56) 116deg,
-    rgba(255, 226, 162, 0.26) 132deg,
-    rgba(255, 247, 214, 0.10) 148deg,
-    transparent 160deg 360deg
+    transparent 0deg 84deg,
+    rgba(255, 255, 246, 0.12) 90deg,
+    rgba(255, 253, 237, 0.29) 98deg,
+    rgba(255, 250, 225, 0.54) 108deg,
+    rgba(255, 239, 202, 0.25) 127deg,
+    rgba(255, 249, 226, 0.10) 142deg,
+    transparent 154deg 360deg
   );
-  filter: blur(19px);
-  opacity: 0.96;
+  filter: blur(17px);
+  opacity: 0.86;
   transform: none;
-  -webkit-mask-image: radial-gradient(ellipse 78% 59% at 0 0, #000 0%, rgba(0, 0, 0, 0.88) 51%, transparent 100%);
-  mask-image: radial-gradient(ellipse 78% 59% at 0 0, #000 0%, rgba(0, 0, 0, 0.88) 51%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 126% 112% at 0 0, #000 0%, rgba(0, 0, 0, 0.92) 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 126% 112% at 0 0, #000 0%, rgba(0, 0, 0, 0.92) 60%, transparent 100%);
 }
 
 .hero-scene .ambient-light::after {
@@ -5827,28 +5817,16 @@ body,
   aspect-ratio: auto;
   background: conic-gradient(
     from 0deg at 0 0,
-    transparent 0deg 102deg,
-    rgba(255, 255, 244, 0.48) 106deg 116deg,
-    rgba(255, 239, 188, 0.20) 121deg 133deg,
-    rgba(255, 248, 222, 0.08) 140deg 148deg,
-    transparent 156deg 360deg
+    transparent 0deg 99deg,
+    rgba(255, 255, 248, 0.45) 100deg 108deg,
+    rgba(255, 248, 222, 0.18) 111deg 120deg,
+    rgba(255, 251, 231, 0.08) 124deg 134deg,
+    transparent 144deg 360deg
   );
-  filter: blur(11px);
-  opacity: 0.88;
-  -webkit-mask-image: radial-gradient(ellipse 74% 55% at 0 0, #000 0%, rgba(0, 0, 0, 0.8) 51%, transparent 100%);
-  mask-image: radial-gradient(ellipse 74% 55% at 0 0, #000 0%, rgba(0, 0, 0, 0.8) 51%, transparent 100%);
-}
-
-@media (max-width: 800px) {
-  .hero-scene .ambient-light::before {
-    -webkit-mask-image: radial-gradient(ellipse 78% 52% at 0 0, #000 0%, rgba(0, 0, 0, 0.88) 49%, transparent 100%);
-    mask-image: radial-gradient(ellipse 78% 52% at 0 0, #000 0%, rgba(0, 0, 0, 0.88) 49%, transparent 100%);
-  }
-
-  .hero-scene .ambient-light::after {
-    -webkit-mask-image: radial-gradient(ellipse 74% 49% at 0 0, #000 0%, rgba(0, 0, 0, 0.8) 49%, transparent 100%);
-    mask-image: radial-gradient(ellipse 74% 49% at 0 0, #000 0%, rgba(0, 0, 0, 0.8) 49%, transparent 100%);
-  }
+  filter: blur(10px);
+  opacity: 0.74;
+  -webkit-mask-image: radial-gradient(ellipse 120% 108% at 0 0, #000 0%, rgba(0, 0, 0, 0.86) 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 120% 108% at 0 0, #000 0%, rgba(0, 0, 0, 0.86) 60%, transparent 100%);
 }
 /* Mobile reference asset map */
 @media (max-width: 800px) {

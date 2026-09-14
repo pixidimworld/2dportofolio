@@ -187,15 +187,6 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function canRunParallax() {
-  return !document.hidden &&
-    !prefersReducedMotion.matches &&
-    !root.classList.contains("is-loading") &&
-    !root.classList.contains("is-entering") &&
-    !root.classList.contains("is-entering-book") &&
-    !root.classList.contains("is-entering-assets");
-}
-
 function renderParallax() {
   currentX += (targetX - currentX) * 0.075;
   currentY += (targetY - currentY) * 0.075;
@@ -210,7 +201,7 @@ function renderParallax() {
     Math.abs(targetX - currentX) > 0.001 ||
     Math.abs(targetY - currentY) > 0.001;
 
-  frameId = canRunParallax() && stillMoving ? requestAnimationFrame(renderParallax) : 0;
+  frameId = stillMoving ? requestAnimationFrame(renderParallax) : 0;
 }
 
 function stopParallax() {
@@ -219,12 +210,12 @@ function stopParallax() {
 }
 
 function queueParallax() {
-  if (canRunParallax() && !frameId) frameId = requestAnimationFrame(renderParallax);
+  if (!document.hidden && !frameId) frameId = requestAnimationFrame(renderParallax);
 }
 
 function handlePointerMove(event) {
   if (
-    !canRunParallax() ||
+    prefersReducedMotion.matches ||
     !supportsFinePointer.matches ||
     event.pointerType === "touch"
   ) return;
@@ -235,7 +226,7 @@ function handlePointerMove(event) {
 }
 
 function handleTouchMove(event) {
-  if (!canRunParallax() || supportsFinePointer.matches) return;
+  if (prefersReducedMotion.matches || supportsFinePointer.matches) return;
 
   const touch = event.touches[0];
   if (!touch) return;
@@ -247,7 +238,7 @@ function handleTouchMove(event) {
 
 function handleDeviceOrientation(event) {
   if (
-    !canRunParallax() ||
+    prefersReducedMotion.matches ||
     supportsFinePointer.matches ||
     !Number.isFinite(event.beta) ||
     !Number.isFinite(event.gamma)
@@ -514,38 +505,6 @@ function finishInteractionTutorial() {
   }, prefersReducedMotion.matches ? 20 : 520);
 }
 
-function createDecorativeEntranceAnimations() {
-  return entrancePlan.flatMap(([selector, horizontalDirection, verticalDirection], index) => {
-    const item = document.querySelector(selector);
-    if (!item || getComputedStyle(item).display === "none") return [];
-
-    const itemRect = item.getBoundingClientRect();
-    const horizontalTravel = horizontalDirection < 0
-      ? -(itemRect.right + 24)
-      : horizontalDirection > 0
-        ? window.innerWidth - itemRect.left + 24
-        : 0;
-    const verticalTravel = verticalDirection < 0
-      ? -(itemRect.bottom + 24)
-      : verticalDirection > 0
-        ? window.innerHeight - itemRect.top + 24
-        : 0;
-
-    return [item.animate(
-      [
-        { opacity: 0, translate: `${horizontalTravel}px ${verticalTravel}px` },
-        { opacity: 1, translate: "0 0" },
-      ],
-      {
-        delay: index * 45,
-        duration: 540,
-        easing: "cubic-bezier(0.22, 0.78, 0.24, 1)",
-        fill: "both",
-      },
-    )];
-  });
-}
-
 function finishEntrance() {
   root.classList.remove("has-entrance", "is-entering", "is-entering-book", "is-entering-assets");
   entranceAnimations.forEach((animation) => animation.cancel());
@@ -565,14 +524,13 @@ function playEntrance() {
     return;
   }
 
-  root.classList.add("is-entering", "is-entering-book");
   const bookRect = officeBook.getBoundingClientRect();
   const bookTravel = window.innerHeight - bookRect.top + Math.max(28, bookRect.height * 0.04);
   const bookAnimation = officeBook.animate(
     [
-      { opacity: 0, translate: `0 ${bookTravel}px` },
-      { opacity: 1, translate: "0 -4px", offset: 0.84 },
-      { opacity: 1, translate: "0 0" },
+      { opacity: 0, translate: `0 ${bookTravel}px`, scale: "0.985" },
+      { opacity: 1, translate: "0 -4px", scale: "1.003", offset: 0.84 },
+      { opacity: 1, translate: "0 0", scale: "1" },
     ],
     {
       duration: 760,
@@ -582,22 +540,39 @@ function playEntrance() {
   );
 
   entranceAnimations = [bookAnimation];
-  bookAnimation.finished.then(() => {
-    root.classList.remove("is-entering-book");
-    window.setTimeout(() => {
-      root.classList.add("is-entering-assets");
-      const assetAnimations = createDecorativeEntranceAnimations();
-      entranceAnimations = [bookAnimation, ...assetAnimations];
-      root.classList.remove("has-entrance");
+  entrancePlan.forEach(([selector, horizontalDirection, verticalDirection], index) => {
+    const item = document.querySelector(selector);
+    if (!item || getComputedStyle(item).display === "none") return;
 
-      if (!assetAnimations.length) {
-        finishEntrance();
-        return;
-      }
-
-      Promise.allSettled(assetAnimations.map((animation) => animation.finished)).then(finishEntrance);
-    }, 180);
+    const itemRect = item.getBoundingClientRect();
+    const horizontalTravel = horizontalDirection < 0
+      ? -(itemRect.right + 24)
+      : horizontalDirection > 0
+        ? window.innerWidth - itemRect.left + 24
+        : 0;
+    const verticalTravel = verticalDirection < 0
+      ? -(itemRect.bottom + 24)
+      : verticalDirection > 0
+        ? window.innerHeight - itemRect.top + 24
+        : 0;
+    const animation = item.animate(
+      [
+        { opacity: 0, translate: `${horizontalTravel}px ${verticalTravel}px` },
+        { opacity: 1, translate: "0 0" },
+      ],
+      {
+        delay: 100 + index * 45,
+        duration: 540,
+        easing: "cubic-bezier(0.22, 0.78, 0.24, 1)",
+        fill: "both",
+      },
+    );
+    entranceAnimations.push(animation);
   });
+
+  root.classList.add("is-entering");
+  root.classList.remove("has-entrance");
+  Promise.allSettled(entranceAnimations.map((animation) => animation.finished)).then(finishEntrance);
 }
 
 function decodeImage(image) {
@@ -638,23 +613,29 @@ function updateLoaderProgress(value) {
 
 function waitForAudioReady(audio) {
   return new Promise((resolve) => {
-    if (!audio || audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    if (!audio) {
       resolve();
       return;
     }
 
     const finish = () => {
+      audio.removeEventListener("canplaythrough", finish);
       audio.removeEventListener("loadeddata", finish);
       audio.removeEventListener("error", finish);
       resolve();
     };
 
+    if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      finish();
+      return;
+    }
+
+    audio.addEventListener("canplaythrough", finish, { once: true });
     audio.addEventListener("loadeddata", finish, { once: true });
     audio.addEventListener("error", finish, { once: true });
     audio.load();
   });
 }
-
 async function loadSiteImages() {
   if (!siteLoader) {
     root.classList.remove("is-loading");
@@ -663,26 +644,35 @@ async function loadSiteImages() {
   }
 
   const backgroundImage = new Image();
-  backgroundImage.decoding = "async";
   backgroundImage.src = "/background.png";
 
-  // These are the only image assets visible when the portfolio first opens.
+  const criticalAssetUrls = [
+    "/board.png", "/clip.png",
+    "/assest/optimized/2026.webp", "/assest/optimized/bulb.webp",
+    "/assest/optimized/file.webp", "/assest/optimized/paint.webp",
+    "/assest/optimized/paint-brush.webp", "/assest/optimized/star.webp",
+    "/assest/optimized/radio2.webp", "/assest/optimized/crayon2.webp",
+    "/assest/optimized/pencil2.webp", "/assest/optimized/smileyface.webp",
+    "/assest/optimized/glue.webp", "/assest/optimized/laptop.webp",
+    "/assest/optimized/notes.webp", "/assest/optimized/office-pin.webp",
+    "/assest/optimized/portfolio-eye.webp",
+  ];
+
+  // In-DOM images for the first visible scene that must be decoded before entry
   const domCriticalImages = [
     document.querySelector(".clipboard-board"),
     document.querySelector(".clipboard-clip"),
+    document.querySelector(".loader-bulb"),
     ...document.querySelectorAll(".clipboard-edge-decor img"),
-  ].filter((image) => image instanceof HTMLImageElement);
+  ].filter(Boolean);
 
-  // Decode each source once. The earlier loader decoded DOM images and duplicate Image objects.
-  const uniqueImages = [backgroundImage];
-  const seenSources = new Set([backgroundImage.src]);
-  domCriticalImages.forEach((image) => {
-    const source = image.currentSrc || image.src;
-    if (!source || seenSources.has(source)) return;
-    seenSources.add(source);
-    uniqueImages.push(image);
-  });
+  const preloadImages = [backgroundImage, ...criticalAssetUrls.map((src) => {
+    const img = new Image();
+    img.src = src;
+    return img;
+  })];
 
+  const allCriticalImages = [...domCriticalImages, ...preloadImages];
   let loadedCount = 0;
   let displayedProgress = 1;
   let availableProgress = 1;
@@ -706,16 +696,17 @@ async function loadSiteImages() {
     }
   }, 20);
 
-  const imageTasks = uniqueImages.map((image) =>
-    decodeImage(image).then(() => {
+  const imageTasks = allCriticalImages.map((img) =>
+    decodeImage(img).then(() => {
       loadedCount += 1;
       availableProgress = Math.max(
         availableProgress,
-        Math.min(99, Math.floor((loadedCount / uniqueImages.length) * 99)),
+        Math.min(99, Math.floor((loadedCount / allCriticalImages.length) * 99)),
       );
     }),
   );
 
+  // Preload only critical scene assets: first-scene images, system fonts, and paper sound
   await Promise.all([
     Promise.all(imageTasks),
     document.fonts?.ready || Promise.resolve(),
@@ -732,6 +723,7 @@ async function loadSiteImages() {
     playCurrentSceneEntrance();
   }, 520);
 }
+
 scene?.addEventListener("pointermove", handlePointerMove, { passive: true });
 scene?.addEventListener("pointerleave", resetParallax, { passive: true });
 scene?.addEventListener("touchmove", handleTouchMove, { passive: true });
