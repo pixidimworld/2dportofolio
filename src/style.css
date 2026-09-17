@@ -5094,7 +5094,7 @@ body,
   translate: var(--parallax-x, 0px) var(--parallax-y, 0px);
   pointer-events: none;
   user-select: none;
-  will-change: translate;
+  will-change: auto;
 }
 
 .edge-decor-bulb {
@@ -5589,7 +5589,7 @@ body,
   opacity: 0.92;
   transform: none;
   transform-origin: initial;
-  animation: reference-light-breathe 8s ease-in-out infinite alternate;
+  animation: none;
   pointer-events: none;
 }
 
@@ -5948,6 +5948,7 @@ body,
 .clipboard-clip-shadow,
 .clipboard-clip {
   translate: none;
+  will-change: auto;
 }
 
 .hero-center-art {
@@ -5993,6 +5994,25 @@ body,
   transform: none;
   transform-style: flat;
   will-change: auto;
+}
+
+html.is-loading .hero-scene .hero-center-art,
+html.is-entering .hero-scene .hero-center-art {
+  will-change: transform, opacity;
+}
+
+html.is-loading .edge-decor,
+html.is-entering .edge-decor {
+  will-change: translate, opacity;
+}
+
+html.is-loading .edge-decor,
+html.is-loading .hero-scene .hero-center-art {
+  opacity: 0.001;
+}
+
+html.is-parallaxing .parallax-asset {
+  will-change: translate;
 }
 
 @media (min-width: 801px) and (max-height: 819px) {
@@ -6343,10 +6363,6 @@ html:not(.show-hobbies) .scene {
 
 /* Keep the large office-book entrance on its own composited layer on mobile/tablet. */
 @media (max-width: 1100px) {
-  html.is-entering .hero-scene .hero-center-art {
-    will-change: transform, opacity;
-  }
-
   html.is-entering .hero-scene .ambient-light {
     animation-play-state: paused;
   }

@@ -172,6 +172,8 @@ let targetY = 0;
 let currentX = 0;
 let currentY = 0;
 let frameId = 0;
+let activeParallaxAssets = [...parallaxAssets];
+let mobileGlueFrame = 0;
 let orientationOrigin = null;
 let tutorialStep = "idle";
 let tutorialTarget = null;
@@ -187,7 +189,7 @@ function renderParallax() {
   currentX += (targetX - currentX) * 0.075;
   currentY += (targetY - currentY) * 0.075;
 
-  parallaxAssets.forEach((item) => {
+  activeParallaxAssets.forEach((item) => {
     const depth = Number(item.dataset.depth || 0);
     item.style.setProperty("--parallax-x", `${currentX * depth}px`);
     item.style.setProperty("--parallax-y", `${currentY * depth}px`);
@@ -197,16 +199,36 @@ function renderParallax() {
     Math.abs(targetX - currentX) > 0.001 ||
     Math.abs(targetY - currentY) > 0.001;
 
-  frameId = stillMoving ? requestAnimationFrame(renderParallax) : 0;
+  if (stillMoving) {
+    frameId = requestAnimationFrame(renderParallax);
+  } else {
+    frameId = 0;
+    root.classList.remove("is-parallaxing");
+  }
 }
 
 function stopParallax() {
   if (frameId) cancelAnimationFrame(frameId);
   frameId = 0;
+  root.classList.remove("is-parallaxing");
 }
 
 function queueParallax() {
-  if (!document.hidden && !frameId) frameId = requestAnimationFrame(renderParallax);
+  if (
+    !document.hidden &&
+    !frameId &&
+    !root.classList.contains("is-loading") &&
+    !root.classList.contains("is-entering")
+  ) {
+    root.classList.add("is-parallaxing");
+    frameId = requestAnimationFrame(renderParallax);
+  }
+}
+
+function refreshActiveParallaxAssets() {
+  activeParallaxAssets = [...parallaxAssets].filter(
+    (item) => getComputedStyle(item).display !== "none",
+  );
 }
 
 function handlePointerMove(event) {
@@ -278,12 +300,22 @@ function positionMobileGlue() {
   root.style.setProperty("--mobile-glue-top", `${top}px`);
   root.style.setProperty("--mobile-glue-size", `${size}px`);
 }
+
+function queueMobileGluePosition() {
+  if (mobileGlueFrame) return;
+  mobileGlueFrame = requestAnimationFrame(() => {
+    mobileGlueFrame = 0;
+    refreshActiveParallaxAssets();
+    positionMobileGlue();
+  });
+}
+
 function updateNavFocusZoom(index) {
   if (prefersReducedMotion.matches || (tutorialStep !== "complete" && tutorialStep !== "idle")) return;
   const clampedIndex = clamp(index, 0, NAV_ZOOM_LEVELS.length - 1);
   const zoom = NAV_ZOOM_LEVELS[clampedIndex];
   root.style.setProperty("--nav-focus-zoom", String(zoom));
-  requestAnimationFrame(positionMobileGlue);
+  queueMobileGluePosition();
 }
 
 function syncTutorialFocus() {
@@ -528,20 +560,19 @@ function waitForImage(image) {
   return new Promise((resolve) => {
     let settled = false;
 
-    const finish = () => {
+    const finish = async () => {
       if (settled) return;
       settled = true;
       image.removeEventListener("load", finish);
       image.removeEventListener("error", finish);
+      if (image.naturalWidth > 0 && typeof image.decode === "function") {
+        await image.decode().catch(() => {});
+      }
       resolve();
     };
 
     if (image.complete) {
-      if (typeof image.decode === "function") {
-        image.decode().catch(() => {}).finally(finish);
-      } else {
-        finish();
-      }
+      finish();
       return;
     }
 
@@ -589,24 +620,12 @@ async function loadSiteImages() {
   }
 
   const backgroundImage = new Image();
+  backgroundImage.decoding = "async";
   backgroundImage.src = "/background.png";
 
-  const criticalAssetUrls = [
-    "/board.png", "/clip.png",
-    "/assest/optimized/2026.webp", "/assest/optimized/bulb.webp",
-    "/assest/optimized/file.webp", "/assest/optimized/paint.webp",
-    "/assest/optimized/paint-brush.webp", "/assest/optimized/star.webp",
-    "/assest/optimized/radio2.webp", "/assest/optimized/crayon2.webp",
-    "/assest/optimized/pencil2.webp", "/assest/optimized/smileyface.webp",
-    "/assest/optimized/glue.webp", "/assest/optimized/laptop.webp",
-    "/assest/optimized/notes.webp", "/assest/optimized/office-pin.webp",
-    "/assest/optimized/portfolio-eye.webp",
-  ];
-  const criticalImages = criticalAssetUrls.map((src) => {
-    const image = new Image();
-    image.src = src;
-    return image;
-  });
+  const criticalImages = [
+    ...document.querySelectorAll(".clipboard-board, .clipboard-clip, .edge-decor"),
+  ].filter((image) => getComputedStyle(image).display !== "none");
   const images = [backgroundImage, ...criticalImages];
   let loadedImages = 0;
   let displayedProgress = 1;
@@ -644,7 +663,6 @@ async function loadSiteImages() {
   await Promise.all([
     Promise.all(imageTasks),
     document.fonts?.ready || Promise.resolve(),
-    Promise.all([waitForAudioReady(initPaperSound()), waitForAudioReady(initBgMusic())]),
   ]);
 
   availableProgress = 100;
@@ -672,6 +690,7 @@ prefersReducedMotion.addEventListener("change", (event) => {
 });
 supportsFinePointer.addEventListener("change", (event) => {
   orientationOrigin = null;
+  refreshActiveParallaxAssets();
   resetParallax();
 });
 
@@ -1260,7 +1279,7 @@ document.addEventListener("click", () => {
 });
 
 window.addEventListener("resize", () => {
-  positionMobileGlue();
+  queueMobileGluePosition();
   if (tutorialStep !== "step_1" && tutorialStep !== "step_2") return;
   focusTutorialTarget(tutorialTarget, tutorialStep);
 }, { passive: true });
@@ -1280,5 +1299,5 @@ if (location.hash === "#projects") {
   hobbiesScene?.setAttribute("aria-hidden", "false");
 }
 root.classList.add("is-ready");
-requestAnimationFrame(positionMobileGlue);
+queueMobileGluePosition();
 loadSiteImages();
