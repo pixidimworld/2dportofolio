@@ -1,6 +1,10 @@
 import "./style.css";
 import bgMusicUrl from "../music.mp3";
 import paperSlideSoundUrl from "../paper slide.wav";
+import { inject } from '@vercel/analytics';
+
+// Initialize Vercel Web Analytics
+inject();
 
 const root = document.documentElement;
 const scene = document.querySelector(".hero-scene");
