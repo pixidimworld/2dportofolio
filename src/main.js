@@ -612,6 +612,19 @@ function waitForAudioReady(audio) {
     audio.load();
   });
 }
+
+function prepareFirstPaperInteraction() {
+  const sound = initPaperSound();
+  void waitForAudioReady(sound);
+
+  document.querySelectorAll(".clipboard-paper-services img").forEach((image) => {
+    image.loading = "eager";
+    void waitForImage(image);
+  });
+
+  document.querySelector(".clipboard-paper.is-active")?.getBoundingClientRect();
+}
+
 async function loadSiteImages() {
   if (!siteLoader) {
     root.classList.remove("is-loading");
@@ -697,13 +710,10 @@ supportsFinePointer.addEventListener("change", (event) => {
 const heroScene = document.querySelector(".hero-scene");
 const projectsScene = document.querySelector(".projects-page");
 const contactScene = document.querySelector(".contact-scene");
-const hobbiesScene = document.querySelector(".hobbies-page");
 const projectsTriggers = document.querySelectorAll('a[href="#projects"]');
 const contactTriggers = document.querySelectorAll('a[href="#contact"]');
-const hobbiesTriggers = document.querySelectorAll('a[href="#hobbies"]');
 const projectsHomeTrigger = document.querySelector("[data-scene-home]");
 const contactHomeTrigger = document.querySelector("[data-contact-home]");
-const hobbiesHomeTrigger = document.querySelector("[data-hobbies-home]");
 const contactForm = document.querySelector("#contact-form");
 const contactStatus = document.querySelector(".contact-status");
 const clipboardContactForm = document.querySelector("#clipboard-contact-form");
@@ -715,7 +725,6 @@ let sceneTransitioning = false;
 const stickerSceneSelectors = new Map([
   [projectsScene, ".projects-home, .projects-heading h2 > *, .projects-heading p, .projects-browser, .projects-filters button, .featured-project, .project-mini, .projects-quote, .projects-decor, .project-ribbon, .project-tape, .project-mini-label"],
   [contactScene, ".contact-home, .contact-paper, .contact-tape, .contact-kicker, .contact-paper h2, .contact-field, .contact-actions, .contact-footnote"],
-  [hobbiesScene, ".hobbies-home, .hobbies-heading h2 > *, .hobbies-heading p, .hobbies-note, .hobbies-headphones, .hobby-card, .hobby-card-tape, .hobby-card h3, .hobby-card-icon, .hobbies-corner, .hobbies-footer"],
 ]);
 const stickerAnimations = new WeakMap();
 
@@ -786,16 +795,13 @@ function playCurrentSceneEntrance() {
 
   const sceneElement = currentScene === "projects"
     ? projectsScene
-    : currentScene === "contact"
-      ? contactScene
-      : hobbiesScene;
+    : contactScene;
   stickerEntrance(sceneElement, 40);
 }
 
 function getCurrentScene() {
   if (root.classList.contains("show-projects")) return "projects";
   if (root.classList.contains("show-contact")) return "contact";
-  if (root.classList.contains("show-hobbies")) return "hobbies";
   return "home";
 }
 
@@ -804,23 +810,18 @@ function setScene(nextScene, updateUrl = true) {
 
   const showProjects = nextScene === "projects";
   const showContact = nextScene === "contact";
-  const showHobbies = nextScene === "hobbies";
   sceneTransitioning = true;
   root.classList.toggle("show-projects", showProjects);
   root.classList.toggle("show-contact", showContact);
-  root.classList.toggle("show-hobbies", showHobbies);
-  heroScene?.setAttribute("aria-hidden", String(showProjects || showContact || showHobbies));
+  heroScene?.setAttribute("aria-hidden", String(showProjects || showContact));
   projectsScene?.setAttribute("aria-hidden", String(!showProjects));
   contactScene?.setAttribute("aria-hidden", String(!showContact));
-  hobbiesScene?.setAttribute("aria-hidden", String(!showHobbies));
 
   const entranceScene = showProjects
     ? projectsScene
     : showContact
       ? contactScene
-      : showHobbies
-        ? hobbiesScene
-        : null;
+      : null;
   if (entranceScene) stickerEntrance(entranceScene);
 
   if (updateUrl) {
@@ -834,9 +835,7 @@ function setScene(nextScene, updateUrl = true) {
       ? projectsHomeTrigger
       : showContact
         ? contactForm?.elements.name
-        : showHobbies
-          ? hobbiesHomeTrigger
-          : projectsTriggers[0];
+        : projectsTriggers[0];
     focusTarget?.focus({ preventScroll: true });
   }, prefersReducedMotion.matches ? 0 : 700);
 }
@@ -856,15 +855,8 @@ contactTriggers.forEach((trigger) => {
 });
 
 projectsHomeTrigger?.addEventListener("click", () => setScene("home"));
-hobbiesTriggers.forEach((trigger) => {
-  trigger.addEventListener("click", (event) => {
-    event.preventDefault();
-    setScene("hobbies");
-  });
-});
 
 contactHomeTrigger?.addEventListener("click", () => setScene("home"));
-hobbiesHomeTrigger?.addEventListener("click", () => setScene("home"));
 
 contactForm?.addEventListener("input", (event) => {
   event.target.closest(".contact-field")?.classList.remove("is-invalid");
@@ -1092,8 +1084,9 @@ async function nextPaper(trigger) {
   clipboard?.classList.add("is-paper-animating");
 
   try {
+    const fallAnimation = paperFall(currentPaper, fallDirection);
     playPaperFallSound();
-    await paperFall(currentPaper, fallDirection);
+    await fallAnimation;
     currentPaper.classList.remove("is-active");
     currentPaper.classList.add("is-passed");
     currentPaper.setAttribute("aria-hidden", "true");
@@ -1293,11 +1286,8 @@ if (location.hash === "#projects") {
   root.classList.add("show-contact");
   heroScene?.setAttribute("aria-hidden", "true");
   contactScene?.setAttribute("aria-hidden", "false");
-} else if (location.hash === "#hobbies") {
-  root.classList.add("show-hobbies");
-  heroScene?.setAttribute("aria-hidden", "true");
-  hobbiesScene?.setAttribute("aria-hidden", "false");
 }
 root.classList.add("is-ready");
 queueMobileGluePosition();
+prepareFirstPaperInteraction();
 loadSiteImages();
