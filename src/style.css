@@ -4054,11 +4054,11 @@ body,
     top: 39%;
     right: 3%;
     left: 3%;
-    bottom: 13%;
+    bottom: 18%;
   }
 
   .design-item {
-    width: 69%;
+    width: 64%;
     padding: clamp(2px, 0.8cqw, 4px);
     box-shadow:
       0 1px 3px rgba(45, 30, 25, 0.08),
@@ -4481,6 +4481,8 @@ body,
 }
 
 .edge-decor {
+  --asset-drag-x: 0px;
+  --asset-drag-y: 0px;
   position: absolute;
   display: block;
   height: auto;
@@ -4488,10 +4490,27 @@ body,
   filter:
     drop-shadow(0 4px 3px rgba(48, 30, 66, 0.1))
     drop-shadow(0 11px 9px rgba(48, 30, 66, 0.22));
-  translate: var(--parallax-x, 0px) var(--parallax-y, 0px);
-  pointer-events: none;
+  translate:
+    calc(var(--parallax-x, 0px) + var(--asset-drag-x))
+    calc(var(--parallax-y, 0px) + var(--asset-drag-y));
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
   user-select: none;
+  -webkit-user-drag: none;
   will-change: auto;
+}
+
+.edge-decor.is-asset-dragging {
+  z-index: 30;
+  cursor: grabbing;
+  will-change: translate;
+}
+
+html.is-asset-dragging,
+html.is-asset-dragging body {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .edge-decor-bulb {

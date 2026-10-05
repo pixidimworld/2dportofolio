@@ -175,6 +175,7 @@ let frameId = 0;
 let activeParallaxAssets = [...parallaxAssets];
 let mobileGlueFrame = 0;
 let orientationOrigin = null;
+let activeAssetDrag = null;
 let tutorialStep = "idle";
 let tutorialTarget = null;
 let tutorialSyncFrame = 0;
@@ -276,6 +277,94 @@ function resetParallax() {
   targetY = 0;
   queueParallax();
 }
+
+function beginAssetDrag(event) {
+  if (
+    (event.pointerType === "mouse" && event.button !== 0) ||
+    root.classList.contains("is-loading") ||
+    root.classList.contains("is-entering") ||
+    root.classList.contains("is-tutorial-active")
+  ) return;
+
+  const item = event.currentTarget;
+  const world = item.closest(".scrapbook-world");
+  const sceneBounds = scene?.getBoundingClientRect();
+  const itemBounds = item.getBoundingClientRect();
+  const worldBounds = world?.getBoundingClientRect();
+  if (!sceneBounds || !itemBounds.width || !itemBounds.height) return;
+
+  const scaleX = world?.offsetWidth ? worldBounds.width / world.offsetWidth : 1;
+  const scaleY = world?.offsetHeight ? worldBounds.height / world.offsetHeight : 1;
+  const visibleEdge = Math.min(44, itemBounds.width * 0.32, itemBounds.height * 0.32);
+
+  activeAssetDrag = {
+    item,
+    pointerId: event.pointerId,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    startX: Number(item.dataset.dragX || 0),
+    startY: Number(item.dataset.dragY || 0),
+    scaleX: scaleX || 1,
+    scaleY: scaleY || 1,
+    minDeltaX: sceneBounds.left + visibleEdge - itemBounds.right,
+    maxDeltaX: sceneBounds.right - visibleEdge - itemBounds.left,
+    minDeltaY: sceneBounds.top + visibleEdge - itemBounds.bottom,
+    maxDeltaY: sceneBounds.bottom - visibleEdge - itemBounds.top,
+  };
+
+  item.setPointerCapture(event.pointerId);
+  item.classList.add("is-asset-dragging");
+  root.classList.add("is-asset-dragging");
+  event.preventDefault();
+}
+
+function moveAssetDrag(event) {
+  if (!activeAssetDrag || event.pointerId !== activeAssetDrag.pointerId) return;
+
+  const {
+    item,
+    startClientX,
+    startClientY,
+    startX,
+    startY,
+    scaleX,
+    scaleY,
+    minDeltaX,
+    maxDeltaX,
+    minDeltaY,
+    maxDeltaY,
+  } = activeAssetDrag;
+  const deltaX = clamp(event.clientX - startClientX, minDeltaX, maxDeltaX) / scaleX;
+  const deltaY = clamp(event.clientY - startClientY, minDeltaY, maxDeltaY) / scaleY;
+  const nextX = startX + deltaX;
+  const nextY = startY + deltaY;
+
+  item.dataset.dragX = String(nextX);
+  item.dataset.dragY = String(nextY);
+  item.style.setProperty("--asset-drag-x", nextX + "px");
+  item.style.setProperty("--asset-drag-y", nextY + "px");
+  event.preventDefault();
+}
+
+function endAssetDrag(event) {
+  if (!activeAssetDrag || event.pointerId !== activeAssetDrag.pointerId) return;
+
+  const { item, pointerId } = activeAssetDrag;
+  if (item.hasPointerCapture(pointerId)) item.releasePointerCapture(pointerId);
+  item.classList.remove("is-asset-dragging");
+  root.classList.remove("is-asset-dragging");
+  activeAssetDrag = null;
+  event.preventDefault();
+}
+
+parallaxAssets.forEach((item) => {
+  item.draggable = false;
+  item.addEventListener("pointerdown", beginAssetDrag);
+  item.addEventListener("pointermove", moveAssetDrag);
+  item.addEventListener("pointerup", endAssetDrag);
+  item.addEventListener("pointercancel", endAssetDrag);
+  item.addEventListener("lostpointercapture", endAssetDrag);
+});
 
 function positionMobileGlue() {
   const glue = document.querySelector(".edge-decor-glue");
