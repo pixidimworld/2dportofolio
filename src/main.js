@@ -931,7 +931,7 @@ clipboardContactForm?.addEventListener("submit", (event) => {
   window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 });
 
-const paperOrder = ["welcome", "services", "designs", "more-designs", "projects", "contact"];
+const paperOrder = ["welcome", "services", "designs", "more-designs", "more-designs-final", "projects", "contact"];
 let currentPaperIndex = Math.max(
   0,
   paperOrder.indexOf(document.querySelector(".clipboard-paper.is-active")?.dataset.page),
