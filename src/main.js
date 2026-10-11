@@ -1,6 +1,7 @@
 import "./style.css";
 import bgMusicUrl from "../music.mp3";
 import paperSlideSoundUrl from "../paper slide.wav";
+import resumeUrl from "../DONALDS RESUME.pdf?url";
 
 const root = document.documentElement;
 const scene = document.querySelector(".hero-scene");
@@ -706,11 +707,6 @@ function prepareFirstPaperInteraction() {
   const sound = initPaperSound();
   void waitForAudioReady(sound);
 
-  document.querySelectorAll(".clipboard-paper-services img").forEach((image) => {
-    image.loading = "eager";
-    void waitForImage(image);
-  });
-
   document.querySelector(".clipboard-paper.is-active")?.getBoundingClientRect();
 }
 
@@ -799,6 +795,10 @@ supportsFinePointer.addEventListener("change", (event) => {
 const heroScene = document.querySelector(".hero-scene");
 const projectsScene = document.querySelector(".projects-page");
 const contactScene = document.querySelector(".contact-scene");
+const aboutPage = document.querySelector(".about-page");
+const aboutOpenTriggers = document.querySelectorAll("[data-about-open]");
+const aboutCloseTrigger = document.querySelector("[data-about-close]");
+const resumeLink = document.querySelector("#resume-title");
 const projectsTriggers = document.querySelectorAll('a[href="#projects"]');
 const contactTriggers = document.querySelectorAll('a[href="#contact"]');
 const projectsHomeTrigger = document.querySelector("[data-scene-home]");
@@ -810,6 +810,10 @@ const clipboardContactStatus = document.querySelector(".clipboard-contact-status
 const reversePaperTrigger = document.querySelector("[data-reverse-paper]");
 const whatsappNumber = "250798685100";
 let sceneTransitioning = false;
+let aboutTransitioning = false;
+let aboutReturnFocus = null;
+
+if (resumeLink) resumeLink.href = resumeUrl;
 
 const stickerSceneSelectors = new Map([
   [projectsScene, ".projects-home, .projects-heading h2 > *, .projects-heading p, .projects-browser, .projects-filters button, .featured-project, .project-mini, .projects-quote, .projects-decor, .project-ribbon, .project-tape, .project-mini-label"],
@@ -947,6 +951,75 @@ projectsHomeTrigger?.addEventListener("click", () => setScene("home"));
 
 contactHomeTrigger?.addEventListener("click", () => setScene("home"));
 
+function animateAboutContent() {
+  if (!aboutPage || prefersReducedMotion.matches) return;
+
+  const elements = aboutPage.querySelectorAll(
+    ".about-section-number, .about-portrait-wrap, .about-kicker, .about-intro-copy h2, .about-intro-copy > p, .about-margin-note",
+  );
+
+  elements.forEach((element, index) => {
+    element.animate(
+      [
+        { opacity: 0, transform: "translateY(28px) rotate(0.5deg)" },
+        { opacity: 1, transform: "translateY(0) rotate(0deg)" },
+      ],
+      {
+        delay: 390 + index * 55,
+        duration: 560,
+        easing: "cubic-bezier(0.2, 0.78, 0.24, 1)",
+        fill: "backwards",
+      },
+    );
+  });
+}
+
+function openAbout(updateUrl = true) {
+  if (!aboutPage || aboutTransitioning || root.classList.contains("show-about")) return;
+
+  aboutTransitioning = true;
+  aboutReturnFocus = document.activeElement;
+  aboutPage.scrollTop = 0;
+  aboutPage.inert = false;
+  aboutPage.setAttribute("aria-hidden", "false");
+  heroScene?.setAttribute("aria-hidden", "true");
+  root.classList.add("show-about");
+  animateAboutContent();
+
+  if (updateUrl) history.replaceState(null, "", "#about");
+
+  window.setTimeout(() => {
+    aboutTransitioning = false;
+    aboutCloseTrigger?.focus({ preventScroll: true });
+  }, prefersReducedMotion.matches ? 0 : 830);
+}
+
+function closeAbout() {
+  if (!aboutPage || aboutTransitioning || !root.classList.contains("show-about")) return;
+
+  aboutTransitioning = true;
+  root.classList.remove("show-about");
+  history.replaceState(null, "", location.pathname + location.search);
+
+  window.setTimeout(() => {
+    aboutPage.setAttribute("aria-hidden", "true");
+    aboutPage.inert = true;
+    heroScene?.setAttribute("aria-hidden", "false");
+    aboutTransitioning = false;
+    aboutReturnFocus?.focus?.({ preventScroll: true });
+  }, prefersReducedMotion.matches ? 0 : 830);
+}
+
+aboutOpenTriggers.forEach((trigger) => {
+  trigger.addEventListener("click", () => openAbout());
+});
+
+aboutCloseTrigger?.addEventListener("click", closeAbout);
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && root.classList.contains("show-about")) closeAbout();
+});
+
 contactForm?.addEventListener("input", (event) => {
   event.target.closest(".contact-field")?.classList.remove("is-invalid");
   contactStatus?.classList.remove("is-error");
@@ -974,7 +1047,6 @@ contactForm?.addEventListener("submit", (event) => {
   const message = [
     `Name: ${nameField.value.trim()}`,
     `Website request: ${detailsField.value.trim()}`,
-    "Estimated project range: $200 - $1,000",
   ].join("\n");
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
@@ -1021,11 +1093,37 @@ clipboardContactForm?.addEventListener("submit", (event) => {
 });
 
 const paperOrder = ["welcome", "services", "designs", "more-designs", "more-designs-final", "projects", "contact"];
+const primaryDesignVideo = document.querySelector("[data-design-video]");
 let currentPaperIndex = Math.max(
   0,
   paperOrder.indexOf(document.querySelector(".clipboard-paper.is-active")?.dataset.page),
 );
 let paperTransitioning = false;
+
+function prepareDesignVideo() {
+  if (!primaryDesignVideo || primaryDesignVideo.dataset.prepared === "true") return;
+  primaryDesignVideo.dataset.prepared = "true";
+  primaryDesignVideo.preload = "auto";
+  primaryDesignVideo.load();
+}
+
+function syncDesignVideoPlayback() {
+  if (!primaryDesignVideo) return;
+
+  const designsAreActive = document.querySelector('[data-page="designs"]')?.classList.contains("is-active");
+  const shouldPlay = designsAreActive && !document.hidden && !prefersReducedMotion.matches;
+
+  if (!shouldPlay) {
+    primaryDesignVideo.pause();
+    return;
+  }
+
+  prepareDesignVideo();
+  const playPromise = primaryDesignVideo.play();
+  playPromise?.catch(() => {
+    // Muted playback can retry on the next user interaction if the browser blocks it.
+  });
+}
 
 function getPaperDirection(paper) {
   const paperIndex = [...document.querySelectorAll(".clipboard-paper")].indexOf(paper);
@@ -1149,7 +1247,7 @@ function paperReturn(paper, direction = 1) {
 }
 
 async function nextPaper(trigger) {
-  if (paperTransitioning || previewSourceImage) return;
+  if (paperTransitioning || previewSourceMedia) return;
 
   const currentPaper = trigger.closest(".clipboard-paper");
   const nextPageName = trigger.dataset.nextPaper;
@@ -1166,6 +1264,8 @@ async function nextPaper(trigger) {
 
   const fallDirection = getPaperDirection(currentPaper);
   const clipboard = currentPaper.closest(".clipboard");
+
+  if (nextPageName === "services") prepareDesignVideo();
 
   paperTransitioning = true;
   updatePaperNavigation();
@@ -1184,6 +1284,7 @@ async function nextPaper(trigger) {
     nextSheet.setAttribute("aria-hidden", "false");
     nextSheet.inert = false;
     currentPaperIndex = nextIndex;
+    syncDesignVideoPlayback();
     nextSheet.focus({ preventScroll: true });
   } finally {
     clipboard?.classList.remove("is-paper-animating");
@@ -1194,7 +1295,7 @@ async function nextPaper(trigger) {
 }
 
 async function reversePaper() {
-  if (paperTransitioning || previewSourceImage || currentPaperIndex === 0) return;
+  if (paperTransitioning || previewSourceMedia || currentPaperIndex === 0) return;
 
   const currentPaper = document.querySelector(".clipboard-paper.is-active");
   const previousIndex = currentPaperIndex - 1;
@@ -1218,6 +1319,7 @@ async function reversePaper() {
     previousPaper.setAttribute("aria-hidden", "false");
     previousPaper.inert = false;
     currentPaperIndex = previousIndex;
+    syncDesignVideoPlayback();
     previousPaper.focus({ preventScroll: true });
   } finally {
     clipboard?.classList.remove("is-paper-animating");
@@ -1229,13 +1331,15 @@ async function reversePaper() {
 
 const designPreviewModal = document.querySelector("[data-design-preview]");
 const designPreviewImage = document.querySelector("[data-design-preview-image]");
-let previewSourceImage = null;
+const designPreviewVideo = document.querySelector("[data-design-preview-video]");
+let previewSourceMedia = null;
+let previewActiveMedia = null;
 let previewAnimation = null;
 
-function getPreviewBounds(image) {
-  const aspectRatio = image.naturalWidth && image.naturalHeight
-    ? image.naturalWidth / image.naturalHeight
-    : image.width / image.height || 1;
+function getPreviewBounds(media) {
+  const intrinsicWidth = media.videoWidth || media.naturalWidth || media.clientWidth;
+  const intrinsicHeight = media.videoHeight || media.naturalHeight || media.clientHeight;
+  const aspectRatio = intrinsicWidth && intrinsicHeight ? intrinsicWidth / intrinsicHeight : 1;
   const maxWidth = window.innerWidth * (window.innerWidth <= 800 ? 0.94 : 0.88);
   const maxHeight = window.innerHeight * (window.innerWidth <= 800 ? 0.84 : 0.86);
   let width = maxWidth;
@@ -1252,28 +1356,55 @@ function getPreviewBounds(image) {
   };
 }
 
-function setPreviewImageBounds(bounds) {
-  if (!designPreviewImage) return;
-  designPreviewImage.style.left = `${bounds.left}px`;
-  designPreviewImage.style.top = `${bounds.top}px`;
-  designPreviewImage.style.width = `${bounds.width}px`;
-  designPreviewImage.style.height = `${bounds.height}px`;
+function setPreviewMediaBounds(media, bounds) {
+  if (!media) return;
+  media.style.left = `${bounds.left}px`;
+  media.style.top = `${bounds.top}px`;
+  media.style.width = `${bounds.width}px`;
+  media.style.height = `${bounds.height}px`;
 }
 
-function openDesignPreview(sourceImage) {
-  if (!designPreviewModal || !designPreviewImage || !sourceImage || previewSourceImage) return;
-  previewSourceImage = sourceImage;
-  const sourceBounds = sourceImage.getBoundingClientRect();
-  const targetBounds = getPreviewBounds(sourceImage);
-  designPreviewImage.src = sourceImage.currentSrc || sourceImage.src;
-  designPreviewImage.alt = sourceImage.alt;
-  setPreviewImageBounds(sourceBounds);
+function openDesignPreview(sourceMedia) {
+  if (!designPreviewModal || !sourceMedia || previewSourceMedia) return;
+
+  const isVideo = sourceMedia instanceof HTMLVideoElement;
+  const previewMedia = isVideo ? designPreviewVideo : designPreviewImage;
+  if (!previewMedia) return;
+
+  previewSourceMedia = sourceMedia;
+  previewActiveMedia = previewMedia;
+  designPreviewImage.hidden = isVideo;
+  designPreviewVideo.hidden = !isVideo;
+
+  const sourceBounds = sourceMedia.getBoundingClientRect();
+  const targetBounds = getPreviewBounds(sourceMedia);
+
+  if (isVideo) {
+    sourceMedia.pause();
+    previewMedia.poster = sourceMedia.poster;
+    previewMedia.src = sourceMedia.currentSrc || sourceMedia.src;
+    previewMedia.preload = "auto";
+    previewMedia.load();
+
+    const startPreviewPlayback = () => {
+      previewMedia.currentTime = Math.min(sourceMedia.currentTime, previewMedia.duration || sourceMedia.currentTime);
+      previewMedia.play()?.catch(() => {});
+    };
+
+    if (previewMedia.readyState >= HTMLMediaElement.HAVE_METADATA) startPreviewPlayback();
+    else previewMedia.addEventListener("loadedmetadata", startPreviewPlayback, { once: true });
+  } else {
+    previewMedia.src = sourceMedia.currentSrc || sourceMedia.src;
+    previewMedia.alt = sourceMedia.alt;
+  }
+
+  setPreviewMediaBounds(previewMedia, sourceBounds);
   designPreviewModal.hidden = false;
   designPreviewModal.setAttribute("aria-hidden", "false");
   root.classList.add("is-design-preview-open");
   requestAnimationFrame(() => {
     previewAnimation?.cancel();
-    previewAnimation = designPreviewImage.animate([
+    previewAnimation = previewMedia.animate([
       { left: `${sourceBounds.left}px`, top: `${sourceBounds.top}px`, width: `${sourceBounds.width}px`, height: `${sourceBounds.height}px`, opacity: 0.82 },
       { left: `${targetBounds.left}px`, top: `${targetBounds.top}px`, width: `${targetBounds.width}px`, height: `${targetBounds.height}px`, opacity: 1 },
     ], {
@@ -1281,17 +1412,18 @@ function openDesignPreview(sourceImage) {
       easing: "cubic-bezier(0.2, 0.78, 0.24, 1)",
       fill: "forwards",
     });
-    previewAnimation.finished.then(() => setPreviewImageBounds(targetBounds));
+    previewAnimation.finished.then(() => setPreviewMediaBounds(previewMedia, targetBounds)).catch(() => {});
   });
 }
 
 function closeDesignPreview() {
-  if (!designPreviewModal || !designPreviewImage || !previewSourceImage) return;
-  const sourceImage = previewSourceImage;
-  const sourceBounds = sourceImage.getBoundingClientRect();
-  const currentBounds = designPreviewImage.getBoundingClientRect();
+  if (!designPreviewModal || !previewActiveMedia || !previewSourceMedia) return;
+  const sourceMedia = previewSourceMedia;
+  const activeMedia = previewActiveMedia;
+  const sourceBounds = sourceMedia.getBoundingClientRect();
+  const currentBounds = activeMedia.getBoundingClientRect();
   previewAnimation?.cancel();
-  previewAnimation = designPreviewImage.animate([
+  previewAnimation = activeMedia.animate([
     { left: `${currentBounds.left}px`, top: `${currentBounds.top}px`, width: `${currentBounds.width}px`, height: `${currentBounds.height}px`, opacity: 1 },
     { left: `${sourceBounds.left}px`, top: `${sourceBounds.top}px`, width: `${sourceBounds.width}px`, height: `${sourceBounds.height}px`, opacity: 0.82 },
   ], {
@@ -1303,20 +1435,26 @@ function closeDesignPreview() {
     designPreviewModal.hidden = true;
     designPreviewModal.setAttribute("aria-hidden", "true");
     root.classList.remove("is-design-preview-open");
-    designPreviewImage.removeAttribute("style");
-    designPreviewImage.removeAttribute("src");
-    previewSourceImage = null;
+    activeMedia.pause?.();
+    activeMedia.removeAttribute("style");
+    activeMedia.removeAttribute("src");
+    activeMedia.removeAttribute("poster");
+    if (activeMedia instanceof HTMLVideoElement) activeMedia.load();
+    activeMedia.hidden = true;
+    previewSourceMedia = null;
+    previewActiveMedia = null;
     previewAnimation = null;
-    sourceImage.focus?.({ preventScroll: true });
+    sourceMedia.closest(".design-item")?.focus({ preventScroll: true });
+    syncDesignVideoPlayback();
   });
 }
 
 document.querySelectorAll(".design-item").forEach((item) => {
-  item.addEventListener("click", () => openDesignPreview(item.querySelector("img")));
+  item.addEventListener("click", () => openDesignPreview(item.querySelector("img, video")));
   item.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    openDesignPreview(item.querySelector("img"));
+    openDesignPreview(item.querySelector("img, video"));
   });
 });
 
@@ -1325,8 +1463,10 @@ designPreviewModal?.addEventListener("click", (event) => {
 });
 
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && previewSourceImage) closeDesignPreview();
+  if (event.key === "Escape" && previewSourceMedia) closeDesignPreview();
 });
+
+document.addEventListener("visibilitychange", syncDesignVideoPlayback);
 document.addEventListener("click", (event) => {
   if (tutorialStep === "step_1" || tutorialStep === "step_2") {
     advanceTutorial(event);
@@ -1375,6 +1515,13 @@ if (location.hash === "#projects") {
   root.classList.add("show-contact");
   heroScene?.setAttribute("aria-hidden", "true");
   contactScene?.setAttribute("aria-hidden", "false");
+} else if (location.hash === "#about") {
+  root.classList.add("show-about");
+  heroScene?.setAttribute("aria-hidden", "true");
+  if (aboutPage) {
+    aboutPage.inert = false;
+    aboutPage.setAttribute("aria-hidden", "false");
+  }
 }
 root.classList.add("is-ready");
 queueMobileGluePosition();

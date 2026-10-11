@@ -106,11 +106,6 @@
                       <span class="contact-heading-together">together</span>
                     </div>
 
-                    <aside class="clipboard-price-note" aria-label="Rates start at $10 only">
-                      <span>Rates start at</span>
-                      <strong>$10 only</strong>
-                    </aside>
-
                     <div class="clipboard-contact-fields">
                       <label class="clipboard-contact-field">
                         <span>Your Name</span>
@@ -216,7 +211,7 @@
 
                     <div class="designs-showcase designs-showcase-one" aria-label="Design showcase part 1">
                       <div class="design-item design-item-upper-right" role="button" tabindex="0" aria-label="Preview design 1">
-                        <img src="/optimized-designs/design1.webp" loading="lazy" decoding="async" alt="Design showcase preview 1" />
+                        <video data-design-video src="/optimized-designs/design1-vid.mp4" poster="/optimized-designs/design1.webp" muted loop playsinline preload="metadata" aria-label="Animated design showcase preview 1"></video>
                       </div>
                       <div class="design-item design-item-lower-left" role="button" tabindex="0" aria-label="Preview design 2">
                         <img src="/optimized-designs/design2.webp" loading="lazy" decoding="async" alt="Design showcase preview 2" />
@@ -231,26 +226,16 @@
                 </article>
                 <article class="clipboard-paper clipboard-paper-services" data-page="services" aria-hidden="true" tabindex="-1" inert>
                   <div class="services-paper-content">
-                    <h2 class="services-heading" aria-label="See what I offer">
-                      <span class="services-heading-see">See</span>
-                      <span class="services-heading-what">what I</span>
-                      <span class="services-heading-offer">offer</span>
+                    <h2 class="services-heading" aria-label="Know about me and my role">
+                      <span class="services-heading-know">Know</span>
+                      <span class="services-heading-about">about me</span>
+                      <span class="services-heading-role">&amp; my role</span>
                     </h2>
 
-                    <div class="services-notes" aria-label="Services offered">
-                      <div class="service-note service-note-ui">
-                        <img src="/optimized-paper-assets/stickernote.webp" loading="lazy" decoding="async" alt="" />
-                        <span>Web<br />Design</span>
-                      </div>
-                      <div class="service-note service-note-frontend">
-                        <img src="/optimized-paper-assets/stickynote1.webp" loading="lazy" decoding="async" alt="" />
-                        <span>Front-End<br />Development</span>
-                      </div>
-                      <div class="service-note service-note-creative">
-                        <img src="/optimized-paper-assets/stickynote2.webp" loading="lazy" decoding="async" alt="" />
-                        <span>Creative<br />Development</span>
-                      </div>
-                    </div>
+                    <button class="about-paper-trigger" type="button" data-about-open>
+                      <strong>about me</strong>
+                      <span class="about-trigger-arrow" aria-hidden="true">&#8599;</span>
+                    </button>
 
                     <button class="paper-next services-next" type="button" data-next-paper="designs">
                       <span>Click to see next page</span>
@@ -283,6 +268,89 @@
               <span>Reverse</span>
             </button>
           </div>
+        </div>
+      </section>
+
+      <section id="about" class="about-page" aria-labelledby="about-title" aria-hidden="true" inert>
+        <div class="about-page-inner">
+          <header class="about-topbar">
+            <span>PIXI / DIM / WORLD</span>
+            <span>ABOUT — 2026</span>
+            <button class="about-close" type="button" data-about-close aria-label="Close About page">
+              Close <span aria-hidden="true">&#8595;</span>
+            </button>
+          </header>
+
+          <main class="about-editorial">
+            <section class="about-intro" aria-labelledby="about-title">
+              <p class="about-section-number">01 / ABOUT ME</p>
+              <div class="about-portrait-wrap">
+                <img class="about-portrait" src="/profile pic.jpeg" alt="Portrait of Donald Hanwa" />
+                <span class="about-portrait-note" aria-hidden="true">that's me &#8599;</span>
+              </div>
+              <div class="about-intro-copy">
+                <p class="about-kicker">ABOUT ME</p>
+                <h2 id="about-title"><em>Who</em> am I?</h2>
+                <p class="about-lead">My name is <strong>Donald Hanwa</strong>.</p>
+                <p>I’m a <strong>Creative Web Designer &amp; Developer</strong> focused on creating interactive, visually distinctive digital experiences.</p>
+                <p>My work combines <strong>UI/UX design, creative direction and front-end development</strong>, with a strong interest in experimental web experiences, interaction design and immersive interfaces.</p>
+                <p>I design concepts and turn them into functional experiences using <strong>React, JavaScript, Three.js and WebGL</strong>.</p>
+              </div>
+              <p class="about-margin-note" aria-hidden="true">DESIGNING<br />WITH CODE<br />&amp; CURIOSITY</p>
+            </section>
+
+            <section class="about-roles" aria-labelledby="roles-title">
+              <div class="about-section-heading">
+                <p>02 / WHAT I DO</p>
+                <h2 id="roles-title">MY <em>ROLE</em></h2>
+              </div>
+              <article class="role-entry role-entry-01">
+                <span>01</span>
+                <h3>Creative Web Designer</h3>
+                <p>I develop the visual concept, interface direction, composition, typography and overall experience of a website.</p>
+              </article>
+              <article class="role-entry role-entry-02">
+                <span>02</span>
+                <h3>UI / UX Designer</h3>
+                <p>I design interfaces with a focus on hierarchy, interaction, usability and visual storytelling.</p>
+              </article>
+              <article class="role-entry role-entry-03">
+                <span>03</span>
+                <h3>Front-End Developer</h3>
+                <p>I turn designs into responsive, functional websites using HTML, CSS, JavaScript and React.</p>
+              </article>
+              <article class="role-entry role-entry-04">
+                <span>04</span>
+                <h3>Creative Developer</h3>
+                <p>I build interactive and experimental web experiences using Three.js, WebGL, GSAP and custom interactions.</p>
+              </article>
+              <article class="role-entry role-entry-05">
+                <span>05</span>
+                <h3>3D / Visual Exploration</h3>
+                <p>I use Blender to explore 3D layouts, scenes, objects and visual concepts that can later become part of interactive websites.</p>
+              </article>
+            </section>
+
+            <section class="about-tools" aria-labelledby="tools-title">
+              <p class="about-section-number">03 / TOOLBOX</p>
+              <h2 id="tools-title">TOOLS I <em>WORK WITH</em></h2>
+              <div class="tools-list">
+                <div class="tool-group tool-group-design"><span>Design</span><p>Canva<br />Figma</p></div>
+                <div class="tool-group tool-group-development"><span>Development</span><p>HTML<br />CSS<br />JavaScript<br />React</p></div>
+                <div class="tool-group tool-group-creative"><span>Creative Development</span><p>Three.js<br />WebGL<br />GSAP</p></div>
+                <div class="tool-group tool-group-3d"><span>3D</span><p>Blender</p></div>
+              </div>
+            </section>
+
+            <section class="about-resume" aria-labelledby="resume-title">
+              <p>04 / KEEP A COPY</p>
+              <a id="resume-title" href="/DONALDS RESUME.pdf" target="_blank" rel="noopener" download>
+                <span>Download My</span>
+                <strong>Resume &#8600;</strong>
+              </a>
+              <small>PDF / DONALD HANWA / 2026</small>
+            </section>
+          </main>
         </div>
       </section>
 
@@ -370,10 +438,6 @@
               <span>Your Name</span>
               <input type="text" name="name" autocomplete="name" required />
             </label>
-            <div class="contact-field contact-price-field">
-              <span>Estimated Price</span>
-              <output name="estimated_price">$200 - $1,000</output>
-            </div>
           </div>
 
           <label class="contact-field contact-message-field">
@@ -404,6 +468,7 @@
 
   <div class="design-preview-modal" data-design-preview hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Design preview">
     <img class="design-preview-image" data-design-preview-image alt="" />
+    <video class="design-preview-video" data-design-preview-video muted loop playsinline preload="metadata" hidden></video>
   </div>
   <script type="module" src="/src/main.js"></script>
 </body>
