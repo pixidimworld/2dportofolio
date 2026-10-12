@@ -1093,35 +1093,42 @@ clipboardContactForm?.addEventListener("submit", (event) => {
 });
 
 const paperOrder = ["welcome", "services", "designs", "more-designs", "more-designs-final", "projects", "contact"];
-const primaryDesignVideo = document.querySelector("[data-design-video]");
+const designVideos = [...document.querySelectorAll("[data-design-video]")];
 let currentPaperIndex = Math.max(
   0,
   paperOrder.indexOf(document.querySelector(".clipboard-paper.is-active")?.dataset.page),
 );
 let paperTransitioning = false;
 
-function prepareDesignVideo() {
-  if (!primaryDesignVideo || primaryDesignVideo.dataset.prepared === "true") return;
-  primaryDesignVideo.dataset.prepared = "true";
-  primaryDesignVideo.preload = "auto";
-  primaryDesignVideo.load();
+function prepareDesignVideos(pageName) {
+  designVideos.forEach((video) => {
+    if (
+      video.dataset.prepared === "true" ||
+      (pageName && video.closest(".clipboard-paper")?.dataset.page !== pageName)
+    ) return;
+
+    video.dataset.prepared = "true";
+    video.preload = "auto";
+    video.load();
+  });
 }
 
 function syncDesignVideoPlayback() {
-  if (!primaryDesignVideo) return;
+  designVideos.forEach((video) => {
+    const shouldPlay =
+      video.closest(".clipboard-paper")?.classList.contains("is-active") &&
+      !document.hidden &&
+      !prefersReducedMotion.matches;
 
-  const designsAreActive = document.querySelector('[data-page="designs"]')?.classList.contains("is-active");
-  const shouldPlay = designsAreActive && !document.hidden && !prefersReducedMotion.matches;
+    if (!shouldPlay) {
+      video.pause();
+      return;
+    }
 
-  if (!shouldPlay) {
-    primaryDesignVideo.pause();
-    return;
-  }
-
-  prepareDesignVideo();
-  const playPromise = primaryDesignVideo.play();
-  playPromise?.catch(() => {
-    // Muted playback can retry on the next user interaction if the browser blocks it.
+    prepareDesignVideos(video.closest(".clipboard-paper")?.dataset.page);
+    video.play()?.catch(() => {
+      // Muted playback can retry on the next user interaction if the browser blocks it.
+    });
   });
 }
 
@@ -1265,7 +1272,8 @@ async function nextPaper(trigger) {
   const fallDirection = getPaperDirection(currentPaper);
   const clipboard = currentPaper.closest(".clipboard");
 
-  if (nextPageName === "services") prepareDesignVideo();
+  prepareDesignVideos(nextPageName);
+  prepareDesignVideos(paperOrder[nextIndex + 1]);
 
   paperTransitioning = true;
   updatePaperNavigation();
